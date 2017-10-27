@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Acme" rel="stylesheet">
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://dimplejs.org/dist/dimple.v2.0.0.min.js"></script>
+
+    <!--CSS Styling-->
+    <style>
+      body {
+        font-family: 'Acme', sans-serif;
+        color: #72716f;
+      }
+
+      /*Centers the chart within the SVG*/
+      svg {
+        display: block;
+        margin: auto;
+      }
+
+      h2 {
+        text-align: center;
+      }
+    </style>
+
+    <!--Javascript to draw the graphs-->
+    <script type="text/javascript">
+      function draw(data) {
+
+          //Group data by Carrier and Year
+          var groupByCarrierYear = d3.nest()
+            .key(function(d){ return d.year })
+            .key(function(d){ return d.carrier_name })
+            .rollup(function(d) {
+              return {
+                "OnTimePercentage": d3.sum(d, function(g) {
+                  return g.arr_on_time; }) / d3.sum(d, function(g) {
+                  return g.arr_flights; }),
+                "Delay" : d3.sum(d, function(g) {
+                  return g.delay_duration_due_to_carrier; })
+                  / d3.sum(d, function(g) { return g.arr_del15; })
+              }
+            })
+            .entries(data);
+
+          var margin = 75,
+              width = 1400 - margin,
+              height = 600 - margin;
+
+          /************************BAR CHART*************************/
+
+          //Append header and SVG for bar chart
+          d3.select("body")
+            .append("h2")
+            .text("2016 On-Time Statistics by Carrier")
+
+          var svg1 = d3.select("body")
+            .append("svg")
+              .attr("width", width + margin)
+              .attr("height", height + margin)
+            .append('g')
+              .attr('class','chart');
+
+          //Massage data into format to simplify dimple code
+          var carrierOnTime2016 = []
+          for (var i = 0; i < groupByCarrierYear[12].values.length; i++){
+            carrierOnTime2016.push(
+              {"Carrier": groupByCarrierYear[12].values[i].key,
+              "OnTimePercentage":
+                  groupByCarrierYear[12].values[i].values["OnTimePercentage"]}
+            );
+          }
+
+          //Plot bar chart to compare carrier on-time statistics in 2016
+          var myChart = new dimple.chart(svg1, carrierOnTime2016);
+          var x = myChart.addCategoryAxis("x", "Carrier");
+          var y = myChart.addMeasureAxis("y", "OnTimePercentage");
+          var bar = myChart.addSeries(null, dimple.plot.bar);
+          y.showGridlines = false;
+          y.tickFormat = "%";
+          y.title = "Percentage Flight Arrives On-Time";
+          x.title = "Carrier Name";
+          x.fontSize = "12px";
+          y.fontSize = "12px";
+          myChart.setBounds(margin+50, margin, "80%", "60%");
+          myChart.draw();
+
+          /********************LINE AND SCATTER PLOT*********************/
+
+          //Append header and SVG for line and scatter plot
+          d3.select("body")
+            .append("h2")
+            .text("Annual On-Time Statistics from 2004 to 2016")
+
+          var svg2 = d3.select("body")
+            .append("svg")
+              .attr("width", width + margin)
+              .attr("height", height + margin)
+            .append('g')
+              .attr('class','chart');
+
+          var selectedCarriers = ["Hawaiian Airlines Inc.",
+                                  "Alaska Airlines Inc.",
+                                  "Delta Air Lines Inc.",
+                                  "SkyWest Airlines Inc.",
+                                  "United Air Lines Inc."];
+
+          //Massage data into format to simplify dimple code
+          var carrierOnTime20032016 = []
+          for (var i = 0; i < groupByCarrierYear.length; i++) {
+            for (var j = 0; j < groupByCarrierYear[i].values.length; j++){
+              if (selectedCarriers.indexOf(groupByCarrierYear[i].values[j].key) > -1) {
+                carrierOnTime20032016.push(
+                    {
+                      "Year": groupByCarrierYear[i].key,
+                      "Carrier": groupByCarrierYear[i].values[j].key,
+                      "OnTimePercentage":
+                        groupByCarrierYear[i].values[j].values["OnTimePercentage"]
+                    }
+                );
+              }
+            }
+          }
+
+          //Plot line and scatter plot to show on-time statistics from 2004 to 2016
+          var myChart = new dimple.chart(svg2, carrierOnTime20032016);
+          var x = myChart.addCategoryAxis("x", "Year");
+          var y = myChart.addMeasureAxis("y", "OnTimePercentage");
+          var line = myChart.addSeries("Carrier", dimple.plot.line);
+          y.showGridlines = false;
+          y.tickFormat = "%";
+          y.title = "Percentage Flight Arrives On-Time";
+          x.title = "Year";
+          myChart.setBounds(margin+50, margin, "80%", "60%");
+          myChart.draw();
+
+
+          /********************HORIZONTAL BAR CHART*********************/
+
+          //Append header and SVG for horizaontal bar chart
+          d3.select("body")
+            .append("h2")
+            .text("2016 Average Delay Duration")
+
+          var svg3 = d3.select("body")
+            .append("svg")
+              .attr("width", width + margin)
+              .attr("height", height + margin)
+            .append('g')
+              .attr('class','chart');
+
+          //Massage data into format to simplify dimple code
+          var carrierDelay2016 = []
+          for (var i = 0; i < groupByCarrierYear[12].values.length; i++){
+            carrierDelay2016.push(
+              {"Carrier": groupByCarrierYear[12].values[i].key,
+              "Delay": groupByCarrierYear[12].values[i].values["Delay"]}
+            );
+          }
+
+          //Plot horizontal bar chart to compare carrier delay statistics in 2016
+          var myChart = new dimple.chart(svg3, carrierDelay2016);
+          var x = myChart.addMeasureAxis("x", "Delay");
+          var y = myChart.addCategoryAxis("y", "Carrier");
+          var bar = myChart.addSeries(null, dimple.plot.bar);
+          x.showGridlines = false;
+          x.title = "Average Delay Duration (min)";
+          y.title = "Carrier Name";
+          x.fontSize = "12px";
+          y.fontSize = "12px";
+          myChart.setBounds(margin+100, margin, "75%", "60%");
+          myChart.draw();
+        };
+
+    </script>
+  </head>
+<body>
+  <script type="text/javascript">
+  /*
+    Use D3 (not dimple.js) to load the TSV file
+    and pass the contents of it to the draw function
+    */
+  d3.csv("1022698480_82017_4336_airline_delay_causes.csv", draw);
+  </script>
+</body>
+</html>
